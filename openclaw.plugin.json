@@ -1,9 +1,10 @@
 {
+  "id": "tikhub",
   "name": "tikhub",
   "version": "1.0.0",
   "description": "TikHub 社交媒体数据工具 - 支持小红书、TikTok、抖音、Instagram、YouTube、Twitter、微博等平台的数据搜索与获取",
   "entry": "dist/index.js",
-  "config": {
+  "configSchema": {
     "type": "object",
     "properties": {
       "apiToken": {
