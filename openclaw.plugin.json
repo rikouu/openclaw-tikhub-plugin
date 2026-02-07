@@ -1,0 +1,32 @@
+{
+  "name": "tikhub",
+  "version": "1.0.0",
+  "description": "TikHub 社交媒体数据工具 - 支持小红书、TikTok、抖音、Instagram、YouTube、Twitter、微博等平台的数据搜索与获取",
+  "entry": "dist/index.js",
+  "config": {
+    "type": "object",
+    "properties": {
+      "apiToken": {
+        "type": "string",
+        "description": "TikHub API Bearer Token（从 https://tikhub.io 获取）"
+      },
+      "baseUrl": {
+        "type": "string",
+        "description": "TikHub MCP API 地址",
+        "default": "https://mcp.tikhub.io"
+      },
+      "enabledCategories": {
+        "type": "array",
+        "items": { "type": "string" },
+        "description": "启用的工具分类前缀（如 [\"xiaohongshu\", \"tiktok\", \"douyin\"]）。留空则启用全部。",
+        "default": []
+      },
+      "maxTools": {
+        "type": "number",
+        "description": "最大注册工具数量（避免工具过多占用上下文），0 表示不限",
+        "default": 100
+      }
+    },
+    "required": ["apiToken"]
+  }
+}
