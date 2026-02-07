@@ -11,7 +11,11 @@
 | YouTube | 视频、频道、评论、搜索等 |
 | Twitter/X | 推文、用户、搜索、列表等 |
 | 微博 | 博文、用户、评论、搜索等 |
+| 知乎 | 问答、用户、搜索等 |
 | 快手 | 视频、用户、搜索等 |
+| B站 | 视频、用户、搜索等 |
+| Reddit | 帖子、用户、搜索等 |
+| 微信 | 公众号文章等 |
 | Threads / Lemon8 | 帖子、用户数据等 |
 
 ---
@@ -26,21 +30,17 @@
 
 ## 安装步骤
 
-### 1. 克隆/上传插件到服务器
+### 1. 克隆插件到 extensions 目录
 
 ```bash
-# 方式 A：从 git 克隆（如果你把插件推到了 git 仓库）
-cd ~/.openclaw/plugins
-git clone <your-repo-url> tikhub
-
-# 方式 B：直接复制目录
-cp -r openclaw-tikhub-plugin ~/.openclaw/plugins/tikhub
+cd ~/.openclaw/extensions
+git clone https://github.com/rikouu/openclaw-tikhub-plugin.git tikhub
 ```
 
 ### 2. 安装依赖并编译
 
 ```bash
-cd ~/.openclaw/plugins/tikhub
+cd ~/.openclaw/extensions/tikhub
 npm install
 npm run build
 ```
@@ -55,19 +55,18 @@ npm run build
 nano ~/.openclaw/openclaw.json
 ```
 
-添加插件配置：
+在 `plugins.entries` 下添加：
 
 ```json
 {
   "plugins": {
-    "enabled": true,
     "entries": {
       "tikhub": {
         "enabled": true,
         "config": {
           "apiToken": "你的TikHub API Token",
-          "enabledCategories": ["xiaohongshu", "tiktok", "douyin"],
-          "maxTools": 100
+          "enabledCategories": [],
+          "maxTools": 0
         }
       }
     }
@@ -75,12 +74,10 @@ nano ~/.openclaw/openclaw.json
 }
 ```
 
-> 如果 `openclaw.json` 已有其他配置，将 `tikhub` 部分合并到 `plugins.entries` 下即可。
-
-### 4. 重启 OpenClaw
+### 4. 重启 OpenClaw Gateway
 
 ```bash
-openclaw gateway restart
+systemctl --user restart openclaw-gateway
 ```
 
 ### 5. 验证安装
@@ -88,17 +85,48 @@ openclaw gateway restart
 查看日志确认插件加载成功：
 
 ```bash
-openclaw logs | grep TikHub
+journalctl --user -u openclaw-gateway --since "1 minute ago" | grep TikHub
 ```
 
 应看到类似输出：
 
 ```
-[TikHub] 正在连接 TikHub API...
-[TikHub] 获取到 803 个工具
-[TikHub] 注册 100 个工具，分类: 小红书(28), TikTok(35), 抖音(37)
-[TikHub] 插件加载完成
+[TikHub] 插件加载中... (categories: [])
+[TikHub] 插件加载完成（已注册 tikhub_list_tools, tikhub_call_tool）
 ```
+
+---
+
+## 工作原理
+
+插件注册两个通用工具：
+
+| 工具 | 说明 |
+|------|------|
+| `tikhub_list_tools` | 列出指定平台的可用工具。传入 `category` 参数按平台筛选 |
+| `tikhub_call_tool` | 调用指定的 TikHub 工具。传入 `tool_name` 和 `arguments` |
+
+使用流程：
+1. Agent 先调用 `tikhub_list_tools` 查看某个平台有哪些工具
+2. 选择合适的工具，通过 `tikhub_call_tool` 调用
+
+### 支持的 category 参数
+
+| category | 平台 | 工具数 |
+|----------|------|--------|
+| `xiaohongshu` | 小红书 | ~56 |
+| `tiktok` | TikTok | ~188 |
+| `douyin` | 抖音 | ~223 |
+| `instagram` | Instagram | ~56 |
+| `youtube` | YouTube | ~16 |
+| `twitter` | Twitter/X | ~13 |
+| `weibo` | 微博 | ~38 |
+| `zhihu` | 知乎 | ~32 |
+| `kuaishou` | 快手 | ~30 |
+| `bilibili` | B站 | ~24 |
+| `reddit` | Reddit | ~21 |
+| `wechat` | 微信 | ~19 |
+| `lemon8` | Lemon8 | ~16 |
 
 ---
 
@@ -108,38 +136,22 @@ openclaw logs | grep TikHub
 |------|------|------|--------|------|
 | `apiToken` | string | 是 | - | TikHub API Bearer Token |
 | `baseUrl` | string | 否 | `https://mcp.tikhub.io` | TikHub MCP API 地址 |
-| `enabledCategories` | string[] | 否 | `[]`（全部启用） | 启用的平台分类前缀 |
-| `maxTools` | number | 否 | `100` | 最大注册工具数，0 表示不限 |
-
-### 可用的分类前缀
-
-| 前缀 | 平台 |
-|------|------|
-| `xiaohongshu` | 小红书 |
-| `tiktok` | TikTok |
-| `douyin` | 抖音 |
-| `instagram` | Instagram |
-| `youtube` | YouTube |
-| `twitter` | Twitter/X |
-| `weibo` | 微博 |
-| `kuaishou` | 快手 |
-| `threads` | Threads |
-| `lemon8` | Lemon8 |
-| `tikhub` | TikHub 通用（用户信息、计费等） |
+| `enabledCategories` | string[] | 否 | `[]`（全部启用） | 启用的平台分类前缀，空数组 = 全部 |
+| `maxTools` | number | 否 | `100` | 最大工具数，0 = 不限 |
 
 ### 配置示例
 
-**只启用小红书和抖音，最多 50 个工具：**
+**只启用小红书和抖音：**
 
 ```json
 {
   "apiToken": "your-token-here",
   "enabledCategories": ["xiaohongshu", "douyin"],
-  "maxTools": 50
+  "maxTools": 100
 }
 ```
 
-**启用全部平台（不推荐，工具太多会占用上下文）：**
+**启用全部平台（推荐，工具按需懒加载不占上下文）：**
 
 ```json
 {
@@ -162,29 +174,12 @@ openclaw logs | grep TikHub
 
 > 搜索抖音上最近的"东京租房"相关视频
 
-> 获取这条 Instagram 帖子的详情：https://www.instagram.com/p/xxx
+> 搜索知乎上关于 Claude 的讨论
 
 > 搜索微博上关于"日元汇率"的内容
 ```
 
-Claude 会自动选择合适的 TikHub 工具并调用。
-
----
-
-## 工具命名规则
-
-注册到 OpenClaw 的工具名格式为 `tikhub_<原始工具名>`，例如：
-
-| OpenClaw 工具名 | 对应 TikHub API |
-|-----------------|----------------|
-| `tikhub_xiaohongshu_web_search_notes` | 小红书搜索笔记 |
-| `tikhub_xiaohongshu_web_search_users` | 小红书搜索用户 |
-| `tikhub_tiktok_web_fetch_post_detail` | TikTok 视频详情 |
-| `tikhub_tiktok_web_fetch_user_profile` | TikTok 用户主页 |
-| `tikhub_douyin_web_fetch_general_search` | 抖音通用搜索 |
-| `tikhub_instagram_web_fetch_post_detail` | Instagram 帖子详情 |
-| `tikhub_youtube_web_fetch_video_detail` | YouTube 视频详情 |
-| `tikhub_weibo_web_fetch_search` | 微博搜索 |
+Agent 会自动调用 `tikhub_list_tools` 发现可用工具，再通过 `tikhub_call_tool` 执行具体操作。
 
 ---
 
@@ -194,13 +189,13 @@ Claude 会自动选择合适的 TikHub 工具并调用。
 
 ```bash
 # 检查插件目录结构
-ls ~/.openclaw/plugins/tikhub/dist/index.js
+ls ~/.openclaw/extensions/tikhub/dist/index.js
 
-# 检查配置是否正确
-cat ~/.openclaw/openclaw.json | python3 -m json.tool
+# 检查 openclaw.plugin.json 是否有 id 字段
+cat ~/.openclaw/extensions/tikhub/openclaw.plugin.json
 
 # 查看详细日志
-openclaw logs --level debug | grep -i tikhub
+journalctl --user -u openclaw-gateway --since "5 minutes ago" | grep -i tikhub
 ```
 
 ### API Token 无效
@@ -212,7 +207,7 @@ curl -s -H "Authorization: Bearer YOUR_TOKEN" https://mcp.tikhub.io/tools | head
 
 如果返回工具列表 JSON 则 Token 有效。
 
-### 工具调用失败
+### 工具调用返回错误
 
 检查 TikHub 账户余额和用量：
 
@@ -225,6 +220,19 @@ curl -s -X POST 'https://mcp.tikhub.io/tools/call' \
 
 ---
 
+## OpenClaw 插件 API 注意事项
+
+本插件适配了 OpenClaw 的插件系统，关键要点：
+
+- **同步注册**：`register` 函数必须是同步的，异步注册会被忽略
+- **插件配置**：通过 `api.pluginConfig` 获取（不是 `api.config`）
+- **日志**：使用 `api.logger`（不是 `api.log`）
+- **工具注册**：使用 `api.registerTool()`（不是 `api.registerAgentTool()`）
+- **返回格式**：execute 必须返回 `{ content: [{type:"text", text:"..."}], details: payload }`
+- **execute 签名**：`(toolCallId, params, signal?, onUpdate?) => Promise<AgentToolResult>`
+
+---
+
 ## 开发
 
 ```bash
@@ -232,7 +240,7 @@ curl -s -X POST 'https://mcp.tikhub.io/tools/call' \
 npm run dev
 
 # 修改代码后重启 OpenClaw 生效
-openclaw gateway restart
+systemctl --user restart openclaw-gateway
 ```
 
 ## 许可证
