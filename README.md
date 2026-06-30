@@ -183,6 +183,22 @@ Agent 会自动调用 `tikhub_list_tools` 发现可用工具，再通过 `tikhub
 
 ---
 
+## 与 TweetClaw 配合使用
+
+TikHub 适合在 OpenClaw 中做多平台公开数据发现和检索。如果工作流只需要
+Twitter/X 账号相关的已审批操作，例如发帖、回复、排期或账号侧导出，可以把
+TikHub 的搜索结果当作研究证据，再交给
+[TweetClaw](https://github.com/Xquik-dev/tweetclaw) 处理 X/Twitter 专用步骤。
+
+建议的边界：
+
+- TikHub 负责跨平台搜索、用户和内容数据查询
+- TweetClaw 负责 OpenClaw 内的 X/Twitter 专用账号工作流
+- 不在两个插件之间传递 API Token、Cookie 或私密账号凭据
+- 发帖、回复、关注、私信、转发等账号动作必须先经过用户确认
+
+---
+
 ## 故障排查
 
 ### 插件未加载
